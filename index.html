@@ -8,24 +8,38 @@
         <form id="list" onsubmit="return false">
             <fieldset>
                 <legend>To do list</legend>
-                <table id="output" width="100%">
+                <table  width="100%">
+                    <tbody id="output">
                     <script>
-                        function get_list(){
-                            var request = new XMLHttpRequest();
-                            request.open("GET","get_list.php");
-                            request.onreadystatechange = function () {
-                                if (request.readyState == 4 && request.status == 200)
-                                    document.getElementById("output").innerHTML=request.responseText;
-                            }
-                            request.send();
+                        function get(url) {
+                            return new Promise(function(succeed, fail) {
+                                var request = new XMLHttpRequest();
+                                request.open("GET", url, true);
+                                request.addEventListener("load", function() {
+                                    if (request.status == 200)
+                                        succeed(request.response);
+                                    else
+                                        fail(new Error(request.statusText));
+                                });
+                                request.send();
+                            });
+                        }
+                        function get_list() {
+                            var url="get_list.php";
+                            get(url).then ( (response_text) => {
+                                    document.getElementById("output").innerHTML=response_text;
+                                }).catch((error) => {
+                                    alert(error);
+                                });
                         }
                         get_list();
                     </script>
+                    </tbody>
                 </table>
                 <table align="center">
                     <tr>
                         <td>
-                            <p><input id="user_input_text" name="user_input_text" placeholder="message" maxlength="10" pattern="^[a-zA-Z]+$" required></p>
+                            <p><input onkeypress="if(event.keyCode == 13) return false;" id="user_input_text" name="user_input_text" placeholder="message" maxlength="10" pattern="^[a-zA-Z]+$" required></p>
                         </td>
                         <td >
                             <button id="add_user_text" name="add_user_text" onclick="add_item()">add</button>
@@ -36,22 +50,38 @@
         </form>
             <script>
                 function add_item (){
-                    var request = new XMLHttpRequest();
-                    request.open("GET","add_to_list.php?item="+document.getElementById("user_input_text").value);
-                    request.onreadystatechange = function () {
-                        if (request.readyState == 4 && request.status == 200)
-                            get_list();
-                    }
-                    request.send();
+                        var url = "add_to_list.php?item=" + document.getElementById("user_input_text").value;
+                        get(url).then(function (response_text) {
+                            var new_tr = document.createElement("tr");
+                            new_tr.setAttribute("id", "base_" + response_text);
+                            var new_td_for_text = document.createElement("td");
+                            var new_td_for_button = document.createElement("td");
+                            var new_button = document.createElement("button");
+                            new_td_for_text.setAttribute("width", "50%");
+                            new_td_for_text.setAttribute("align", "center");
+                            new_td_for_text.textContent = response_text;
+                            new_td_for_button.setAttribute("width", "50%");
+                            new_td_for_button.setAttribute("align", "center");
+                            new_button.setAttribute("id", response_text);
+                            new_button.setAttribute("name", response_text);
+                            new_button.setAttribute("onclick", "delete_item(this.id)");
+                            new_button.textContent = "delete";
+                            new_td_for_button.appendChild(new_button);
+                            new_tr.appendChild(new_td_for_text);
+                            new_tr.appendChild(new_td_for_button);
+                            document.getElementById("output").appendChild(new_tr);
+                        }).catch((error) => {
+                            alert(error);
+                        });
                 }
                 function delete_item(id){
-                    var request = new XMLHttpRequest();
-                    request.open("GET","delete_from_list.php?item="+id);
-                    request.onreadystatechange = function () {
-                        if (request.readyState == 4 && request.status == 200)
-                            get_list();
-                    }
-                    request.send();
+                    var url="delete_from_list.php?item="+id;
+                    get(url).then ( function (response_text){
+                        var delete_id=document.getElementById(response_text);
+                        delete_id.parentNode.removeChild(delete_id);
+                    }).catch((error) => {
+                        alert(error);
+                    });
                 }
             </script>
         </body>
